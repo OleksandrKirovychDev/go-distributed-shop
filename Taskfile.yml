@@ -1,0 +1,77 @@
+version: "3"
+
+silent: true
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+
+  # --- Code quality -------------------------------------------------------
+
+  lint:
+    desc: Run golangci-lint across the workspace
+    cmds:
+      - golangci-lint run ./...
+
+  test:
+    desc: Run unit + adapter tests for all modules
+    cmds:
+      - go test ./...
+
+  test:integration:
+    desc: Run E2E smoke tests against the running stack
+    cmds:
+      - echo "Not implemented yet."
+
+  # --- Proto / gRPC -------------------------------------------------------
+
+  proto:gen:
+    desc: Generate Go code from .proto definitions
+    cmds:
+      - buf generate
+
+  proto:lint:
+    desc: Lint .proto definitions
+    cmds:
+      - buf lint
+
+  proto:breaking:
+    desc: Detect breaking changes in protos against the main branch
+    cmds:
+      - buf breaking --against '.git#branch=main'
+
+  # --- Local infrastructure ----------------------------------------------
+
+  infra:up:
+    desc: Start local infrastructure (Postgres, Redpanda, Redis, OpenSearch, MinIO, LGTM stack)
+    cmds:
+      - echo "Not implemented yet."
+
+  infra:down:
+    desc: Stop local infrastructure
+    cmds:
+      - echo "Not implemented yet."
+
+  up:
+    desc: Bring up the entire stack (infra + services)
+    cmds:
+      - echo "Not implemented yet."
+
+  down:
+    desc: Tear down the entire stack
+    cmds:
+      - echo "Not implemented yet."
+
+  # --- GraphQL federation ------------------------------------------------
+
+  supergraph:compose:
+    desc: Compose Apollo Federation v2 supergraph from subgraph schemas
+    cmds:
+      - echo "Not implemented yet."
+
+  supergraph:check:
+    desc: Verify the committed supergraph.graphql matches a fresh recomposition
+    cmds:
+      - echo "Not implemented yet."

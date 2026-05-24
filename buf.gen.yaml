@@ -1,0 +1,17 @@
+version: v2
+
+# Run: task proto:gen
+
+managed:
+  enabled: true
+
+plugins:
+  - remote: buf.build/protocolbuffers/go
+    out: proto/gen/go
+    opt:
+      - paths=source_relative
+
+  - remote: buf.build/grpc/go
+    out: proto/gen/go
+    opt:
+      - paths=source_relative

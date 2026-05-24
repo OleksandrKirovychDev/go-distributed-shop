@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package bootstrap.v1;
+
+option go_package = "github.com/online-shop/proto/gen/go/bootstrap/v1;bootstrapv1";
+
+// Marker is a placeholder message. Do not depend on this — it will be removed.
+message Marker {
+  string note = 1;
+}

@@ -1,0 +1,4 @@
+go 1.26
+
+// Service and shared-package modules are added here.
+// register it via:  go work use ./<path>

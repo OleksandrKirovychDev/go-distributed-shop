@@ -1,0 +1,55 @@
+# --- Go ---------------------------------------------------------------------
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Coverage
+coverage.txt
+coverage.html
+coverage.xml
+profile.out
+
+# Go workspace lock
+go.work.sum
+
+# Build artifacts
+/bin/
+/dist/
+/build/
+
+# --- Air hot reload ---------------------------------------------------------
+tmp/
+.air.log
+
+# --- IDE / editors ----------------------------------------------------------
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# --- Env files --------------------------------------------------------------
+.env
+.env.local
+.env.*.local
+
+# --- OS ---------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+
+# --- Local docker volumes / data --------------------------------------------
+/data/
+/.docker/
+
+# --- Logs -------------------------------------------------------------------
+*.log
+
+# --- Tool caches ------------------------------------------------------------
+.task/
+
+# --- Personal notes (not committed) -----------------------------------------
+/ARCHITECTURE.md

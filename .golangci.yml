@@ -1,0 +1,105 @@
+## golangci-lint configuration (v2) for the Online Shop monorepo.
+##
+## Hexagonal-boundary `depguard` rules will become concrete once `services/` and
+## `pkg/` directories exist. For now, a single forbidden-import placeholder
+## lives in the depguard block so the linter has something concrete to check.
+
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: none
+  enable:
+    - bodyclose
+    - depguard
+    - errcheck
+    - gocritic
+    - gosec
+    - govet
+    - ineffassign
+    - misspell
+    - nilerr
+    - revive
+    - staticcheck
+    - unused
+    - wrapcheck
+
+  settings:
+    depguard:
+      rules:
+        # Placeholder — keeps depguard active with a concrete check.
+        # Hexagonal-boundary rules (forbidding adapter imports from domain/, etc.)
+        # will replace this once services/ exists.
+        forbid-deprecated-stdlib:
+          list-mode: lax
+          files:
+            - "$all"
+          deny:
+            - pkg: "io/ioutil"
+              desc: "deprecated — use io and os instead"
+
+    revive:
+      rules:
+        - name: exported
+        - name: var-naming
+        - name: error-return
+        - name: error-naming
+        - name: if-return
+        - name: increment-decrement
+        - name: var-declaration
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: errorf
+        - name: empty-block
+        - name: superfluous-else
+        - name: unreachable-code
+        - name: redefines-builtin-id
+
+    wrapcheck:
+      ignore-sigs:
+        - .Errorf(
+        - errors.New(
+        - errors.Unwrap(
+        - errors.Join(
+        - .Wrap(
+        - .Wrapf(
+
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+        - style
+      disabled-checks:
+        - ifElseChain
+        - hugeParam
+
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - wrapcheck
+          - errcheck
+          - gosec
+          - bodyclose
+      # Generated code (sqlc, buf) is exempt from style linters.
+      - path: (gen/|\.pb\.go|_gen\.go)
+        linters:
+          - revive
+          - wrapcheck
+          - gocritic
+          - gosec
+          - staticcheck
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/online-shop
