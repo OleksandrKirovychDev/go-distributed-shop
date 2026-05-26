@@ -41,8 +41,10 @@ linters:
               desc: "deprecated — use io and os instead"
 
     revive:
+      # `exported` is intentionally omitted — this repo prefers terse code with
+      # comments only where the WHY is non-obvious; per-identifier doc comments
+      # add noise. Package-level docs are still required via package-comments.
       rules:
-        - name: exported
         - name: var-naming
         - name: error-return
         - name: error-naming
@@ -68,6 +70,15 @@ linters:
         - errors.Join(
         - .Wrap(
         - .Wrapf(
+        - (log/slog.Handler).Handle(
+        # github.com/online-shop/pkg/errors constructors return their own envelope;
+        # callers should not double-wrap it.
+        - errors.NewInvalid(
+        - errors.NewNotFound(
+        - errors.NewConflict(
+        - errors.NewUnauthorized(
+        - errors.NewForbidden(
+        - errors.NewInternal(
 
     gocritic:
       enabled-tags:

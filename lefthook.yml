@@ -1,0 +1,68 @@
+# Git hooks managed by lefthook (https://lefthook.dev).
+# Install once after clone:  task hooks:install
+# CI is the source of truth; these hooks are a courtesy. Set LEFTHOOK=0
+# or use `git commit --no-verify` to bypass during WIP rebases.
+
+pre-commit:
+  parallel: true
+  commands:
+    gofmt:
+      glob: "*.go"
+      run: |
+        bad=$(gofmt -l {staged_files})
+        if [ -n "$bad" ]; then
+          echo "Unformatted Go files:"
+          echo "$bad"
+          echo "Run 'task fmt' to fix."
+          exit 1
+        fi
+
+    goimports:
+      glob: "*.go"
+      run: |
+        bad=$(goimports -l -local github.com/online-shop {staged_files})
+        if [ -n "$bad" ]; then
+          echo "Files with bad import order:"
+          echo "$bad"
+          echo "Run 'task fmt' to fix."
+          exit 1
+        fi
+
+    golangci-lint:
+      glob: "*.go"
+      run: |
+        for d in $(find . -name go.mod -not -path './.git/*' -exec dirname {} \;); do
+          (cd "$d" && golangci-lint run ./...) || exit 1
+        done
+
+    buf-lint:
+      glob: "proto/**/*.proto"
+      run: buf lint
+
+    buf-format:
+      glob: "proto/**/*.proto"
+      run: buf format --diff --exit-code
+
+    forbid-secrets:
+      run: |
+        for f in {staged_files}; do
+          case "$f" in
+            *.env|*.env.*|.envrc|*.pem|*.key|*.p12|*.pfx)
+              echo "Refusing to commit secret-shaped file: $f"
+              exit 1
+              ;;
+          esac
+        done
+
+commit-msg:
+  commands:
+    conventional:
+      run: scripts/check-commit-msg.sh {1}
+
+pre-push:
+  parallel: true
+  commands:
+    full-lint:
+      run: task lint
+    buf-breaking:
+      run: buf breaking --against '.git#branch=main'

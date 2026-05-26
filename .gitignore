@@ -11,7 +11,9 @@
 coverage.txt
 coverage.html
 coverage.xml
+coverage.out
 profile.out
+*.prof
 
 # Go workspace lock
 go.work.sum
@@ -20,6 +22,8 @@ go.work.sum
 /bin/
 /dist/
 /build/
+
+/cmd/smoketest/smoketest
 
 # --- Air hot reload ---------------------------------------------------------
 tmp/
@@ -50,6 +54,10 @@ Thumbs.db
 
 # --- Tool caches ------------------------------------------------------------
 .task/
+
+# --- Git hooks --------------------------------------------------------------
+lefthook-local.yml
+.lefthook-local.yml
 
 # --- Personal notes (not committed) -----------------------------------------
 /ARCHITECTURE.md

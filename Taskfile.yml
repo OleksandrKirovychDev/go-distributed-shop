@@ -2,6 +2,10 @@ version: "3"
 
 silent: true
 
+vars:
+  MODULES:
+    sh: find "{{.TASKFILE_DIR}}" -name go.mod -not -path '*/.git/*' -exec dirname {} \;
+
 tasks:
   default:
     desc: List available tasks
@@ -11,14 +15,22 @@ tasks:
   # --- Code quality -------------------------------------------------------
 
   lint:
-    desc: Run golangci-lint across the workspace
+    desc: Run golangci-lint across every workspace module
     cmds:
-      - golangci-lint run ./...
+      - for: { var: MODULES }
+        cmd: (cd "{{.ITEM}}" && golangci-lint run ./...)
+
+  fmt:
+    desc: Format Go code across the workspace (gofmt + goimports)
+    cmds:
+      - gofmt -w .
+      - goimports -w -local github.com/online-shop .
 
   test:
-    desc: Run unit + adapter tests for all modules
+    desc: Run unit + adapter tests for every workspace module
     cmds:
-      - go test ./...
+      - for: { var: MODULES }
+        cmd: (cd "{{.ITEM}}" && go test ./...)
 
   test:integration:
     desc: Run E2E smoke tests against the running stack
@@ -75,3 +87,23 @@ tasks:
     desc: Verify the committed supergraph.graphql matches a fresh recomposition
     cmds:
       - echo "Not implemented yet."
+
+  # --- Git hooks ----------------------------------------------------------
+
+  hooks:install:
+    desc: Install lefthook git hooks into .git/hooks (idempotent)
+    cmds:
+      - lefthook install
+
+  hooks:run:
+    desc: Run all lefthook checks against the full tree
+    cmds:
+      - lefthook run pre-commit --all-files
+
+  # --- Smoketest -------------------------------
+
+  smoketest:run:
+    desc: Run the proof-of-life cmd (one JSON log line + one OTel span)
+    dir: cmd/smoketest
+    cmds:
+      - go run .
