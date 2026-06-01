@@ -1,0 +1,80 @@
+# Application plane: the identity service (gRPC + GraphQL/JWKS over HTTP), its
+# one-shot migration job, and the Apollo Router edge. All carry `profiles: [services]`
+# so `task infra:up` stays data/observability-only; `task up` adds these. Bind-mount
+# paths are relative to this file's directory (deploy/compose/), how Compose resolves
+# paths inside `include`d fragments.
+
+networks:
+  online-shop:
+    name: online-shop
+
+services:
+  identity-migrate:
+    image: migrate/migrate:v4.18.3
+    profiles: [services]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../../services/identity/migrations:/migrations:ro
+    command:
+      - -path=/migrations
+      - -database=postgres://postgres:postgres@postgres:5432/identity_db?sslmode=disable
+      - up
+    restart: on-failure
+    networks: [online-shop]
+
+  identity:
+    build:
+      context: ../..
+      dockerfile: services/identity/Dockerfile
+    profiles: [services]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      identity-migrate:
+        condition: service_completed_successfully
+    environment:
+      IDENTITY_GRPC_ADDR: ":50051"
+      IDENTITY_HTTP_ADDR: ":8081"
+      IDENTITY_POSTGRES_URL: postgres://postgres:postgres@postgres:5432/identity_db?sslmode=disable
+      IDENTITY_JWT_PRIVATE_KEY_PATH: /etc/identity/jwt.pem
+      IDENTITY_ENVIRONMENT: local
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    volumes:
+      - ../identity/jwt-dev.pem:/etc/identity/jwt.pem:ro
+    ports:
+      - "50051:50051"
+      - "8081:8081"
+    healthcheck:
+      # The distroless image has no shell/curl, so the binary probes its own
+      # /healthz when invoked as `identity healthcheck`.
+      test: ["CMD", "/identity", "healthcheck"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    networks: [online-shop]
+
+  router:
+    image: ghcr.io/apollographql/router:v2.14.0
+    profiles: [services]
+    depends_on:
+      identity:
+        condition: service_healthy
+    environment:
+      # JWT validation is a licensed GraphOS feature; the router fetches a license
+      # from Apollo Uplink using these (the free plan suffices). Set them in .env
+      # (gitignored) — see .env.example. Without them the router refuses to start.
+      APOLLO_KEY: ${APOLLO_KEY:-}
+      APOLLO_GRAPH_REF: ${APOLLO_GRAPH_REF:-}
+    command:
+      - --config
+      - /dist/config/router.yaml
+      - --supergraph
+      - /dist/config/supergraph.graphql
+    volumes:
+      - ../router:/dist/config:ro
+    ports:
+      - "4000:4000"
+    networks: [online-shop]

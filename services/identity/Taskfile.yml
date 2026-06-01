@@ -1,0 +1,70 @@
+version: "3"
+
+silent: true
+
+# Included by the root Taskfile under the `identity:` namespace (dir is set
+# there). The migrate tasks shell out to the golang-migrate CLI — a developer
+# tool, deliberately not a module dependency.
+vars:
+  DB_URL: postgres://postgres:postgres@localhost:5432/identity_db?sslmode=disable
+  # Durable JWT signing key for local compose runs (gitignored). `task run` uses
+  # the ephemeral-key fallback instead; this key exists so the published JWKS and
+  # issued-token kid stay stable across restarts behind the router.
+  KEY_PATH: ../../deploy/identity/jwt-dev.pem
+
+tasks:
+  run:
+    desc: Run the service (air hot-reload if installed, otherwise go run)
+    env:
+      IDENTITY_POSTGRES_URL: "{{.DB_URL}}"
+    cmds:
+      - |
+        if command -v air >/dev/null 2>&1; then
+          air
+        else
+          go run ./cmd/identity
+        fi
+
+  test:
+    desc: Run unit + adapter tests (fast; integration is behind a build tag)
+    cmds:
+      - go test ./...
+
+  test:integration:
+    desc: Run integration tests (testcontainers Postgres)
+    cmds:
+      - go test -tags integration -count=1 ./...
+
+  sqlc:
+    desc: Regenerate sqlc code from queries + migrations
+    cmds:
+      - sqlc generate
+
+  graphql:gen:
+    desc: Regenerate the federated GraphQL subgraph code from schema.graphql
+    # gqlgen resolves its output paths from CWD, so it must run in the config dir;
+    # GOWORK=off keeps import-path resolution inside this module (matches Dockerfile).
+    env:
+      GOWORK: off
+    cmds:
+      - cd api/graphql && go tool gqlgen generate
+
+  keygen:
+    desc: Generate the durable dev RSA signing key (PEM) if absent — gitignored
+    cmds:
+      - mkdir -p "$(dirname {{.KEY_PATH}})"
+      - openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out {{.KEY_PATH}}
+    status:
+      # Skip when the key exists — regenerating would rotate the kid and invalidate
+      # tokens already minted against the published JWKS.
+      - test -f {{.KEY_PATH}}
+
+  migrate:
+    desc: Apply all up migrations
+    cmds:
+      - migrate -path ./migrations -database "{{.DB_URL}}" up
+
+  migrate:down:
+    desc: Roll back N migrations (default 1) — usage; task identity:migrate:down N=1
+    cmds:
+      - migrate -path ./migrations -database "{{.DB_URL}}" down {{.N | default 1}}

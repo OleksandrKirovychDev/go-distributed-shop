@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package events.identity.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/online-shop/proto/gen/go/events/identity/v1;identityeventsv1";
+
+// UserEmailChanged is emitted when a user's email address changes. Published to
+// identity.user.email_changed.v1 by the outbox relay (Step 7).
+message UserEmailChanged {
+  string event_id = 1;
+  google.protobuf.Timestamp occurred_at = 2;
+  string aggregate_id = 3;
+  string aggregate_type = 4;
+  int64 version = 5;
+
+  string user_id = 6;
+  string old_email = 7;
+  string new_email = 8;
+}

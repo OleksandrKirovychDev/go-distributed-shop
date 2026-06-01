@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package events.identity.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/online-shop/proto/gen/go/events/identity/v1;identityeventsv1";
+
+// UserRegistered is emitted once when a user account is created. Published to
+// identity.user.registered.v1 by the outbox relay (Step 7); written to the
+// outbox table transactionally with the user row from Step 4 onward.
+message UserRegistered {
+  string event_id = 1;
+  google.protobuf.Timestamp occurred_at = 2;
+  string aggregate_id = 3;
+  string aggregate_type = 4;
+  int64 version = 5;
+
+  string user_id = 6;
+  string email = 7;
+  repeated string roles = 8;
+}

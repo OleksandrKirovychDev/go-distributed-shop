@@ -29,9 +29,6 @@ linters:
   settings:
     depguard:
       rules:
-        # Placeholder — keeps depguard active with a concrete check.
-        # Hexagonal-boundary rules (forbidding adapter imports from domain/, etc.)
-        # will replace this once services/ exists.
         forbid-deprecated-stdlib:
           list-mode: lax
           files:
@@ -39,6 +36,51 @@ linters:
           deny:
             - pkg: "io/ioutil"
               desc: "deprecated — use io and os instead"
+
+        # Hexagonal boundary: domain/ is pure. It may import sibling domain
+        # packages and pkg/errors, but nothing inward-facing or infra. Denies are
+        # specific sub-paths so same-layer domain↔domain imports stay legal.
+        domain:
+          list-mode: lax
+          files:
+            - "**/internal/domain/**"
+          deny:
+            - pkg: github.com/online-shop/services/*/internal/app
+              desc: "domain must not import app (dependencies point inward)"
+            - pkg: github.com/online-shop/services/*/internal/adapters
+              desc: "domain must not import adapters"
+            - pkg: github.com/jackc/pgx
+              desc: "domain is pure: no database driver"
+            - pkg: google.golang.org/grpc
+              desc: "domain is pure: no transport"
+            - pkg: google.golang.org/protobuf
+              desc: "domain must not depend on generated proto types"
+            - pkg: github.com/online-shop/proto/gen
+              desc: "domain must not import generated stubs"
+            - pkg: github.com/99designs/gqlgen
+              desc: "domain is pure: no GraphQL"
+            - pkg: github.com/twmb/franz-go
+              desc: "domain is pure: no Kafka"
+            - pkg: github.com/golang-jwt/jwt
+              desc: "domain must not import JWT; depend on a port"
+
+        # app/ orchestrates the domain through ports. It may import domain and
+        # sibling app packages, but never adapters or transport/infra libraries.
+        app:
+          list-mode: lax
+          files:
+            - "**/internal/app/**"
+          deny:
+            - pkg: github.com/online-shop/services/*/internal/adapters
+              desc: "app must not import adapters; depend on ports"
+            - pkg: github.com/jackc/pgx
+              desc: "app must not touch the database driver"
+            - pkg: github.com/online-shop/proto/gen
+              desc: "app must not import generated stubs"
+            - pkg: google.golang.org/grpc
+              desc: "app must not import transport"
+            - pkg: github.com/golang-jwt/jwt
+              desc: "app must not import JWT; use the TokenIssuer/TokenParser ports"
 
     revive:
       # `exported` is intentionally omitted — this repo prefers terse code with
@@ -71,6 +113,10 @@ linters:
         - .Wrap(
         - .Wrapf(
         - (log/slog.Handler).Handle(
+        # gRPC status constructors are the canonical error envelope at the
+        # transport boundary; wrapping them would double-encode the status.
+        - status.Error(
+        - status.Errorf(
         # github.com/online-shop/pkg/errors constructors return their own envelope;
         # callers should not double-wrap it.
         - errors.NewInvalid(
@@ -105,6 +151,14 @@ linters:
           - gocritic
           - gosec
           - staticcheck
+      # gqlgen resolver files hold hand-written logic but keep gqlgen's structural
+      # layout — resolver types declared after their methods — which gocritic's
+      # typeDefFirst flags. They aren't auto-detected as generated (gqlgen emits
+      # the package clause before the "Code generated" marker), so exempt the
+      # layout check while every other linter still sees the resolver bodies.
+      - path: \.resolvers\.go
+        linters:
+          - gocritic
 
 formatters:
   enable:

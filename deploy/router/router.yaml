@@ -1,0 +1,46 @@
+# Apollo GraphOS Router v2 config for the local stack. The router is the only
+# public entry point: it validates the edge JWT against identity's JWKS, rejects
+# invalid/expired tokens with 401 before any subgraph is queried, and forwards the
+# authenticated principal to subgraphs via router.rhai.
+#
+# authentication.router.jwt is a licensed GraphOS feature: at startup the router
+# fetches a license from Apollo Uplink using APOLLO_KEY + APOLLO_GRAPH_REF (the
+# free plan suffices) while still routing on the locally-composed supergraph passed
+# via --supergraph. Without those vars the router refuses to start.
+
+supergraph:
+  listen: 0.0.0.0:4000
+  path: /graphql
+  introspection: true
+
+# Interactive Sandbox at the listen root; it requires the static homepage off and
+# introspection on.
+sandbox:
+  enabled: true
+homepage:
+  enabled: false
+
+authentication:
+  router:
+    jwt:
+      jwks:
+        - url: http://identity:8081/.well-known/jwks.json
+          issuers:
+            - identity
+      # on_error defaults to Error: a present-but-invalid/expired token is rejected
+      # with 401 before any subgraph call, while a missing token passes through —
+      # keeping registerUser/loginUser public and letting `me` enforce auth itself.
+
+rhai:
+  scripts: /dist/config
+  main: router.rhai
+
+telemetry:
+  exporters:
+    tracing:
+      propagation:
+        trace_context: true
+      otlp:
+        enabled: true
+        endpoint: http://otel-collector:4317
+        protocol: grpc

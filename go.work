@@ -3,4 +3,6 @@ go 1.26
 use (
 	./cmd/smoketest
 	./pkg
+	./proto/gen/go
+	./services/identity
 )

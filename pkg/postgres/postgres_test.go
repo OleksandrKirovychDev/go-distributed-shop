@@ -63,7 +63,9 @@ func TestNewPool_OpensAndPings(t *testing.T) {
 
 func TestWithTx_CommitsOnNil(t *testing.T) {
 	dsn := setupContainer(t)
-	pool, err := postgres.NewPool(context.Background(), postgres.Config{URL: dsn}, slog.Default())
+	pool, err := postgres.NewPool(context.Background(), postgres.Config{
+		URL: dsn, MaxConns: 4, MinConns: 1, HealthCheckPeriod: 5 * time.Second, ConnectTimeout: 5 * time.Second,
+	}, slog.Default())
 	if err != nil {
 		t.Fatalf("NewPool: %v", err)
 	}
@@ -91,7 +93,9 @@ func TestWithTx_CommitsOnNil(t *testing.T) {
 
 func TestWithTx_RollsBackOnError(t *testing.T) {
 	dsn := setupContainer(t)
-	pool, err := postgres.NewPool(context.Background(), postgres.Config{URL: dsn}, slog.Default())
+	pool, err := postgres.NewPool(context.Background(), postgres.Config{
+		URL: dsn, MaxConns: 4, MinConns: 1, HealthCheckPeriod: 5 * time.Second, ConnectTimeout: 5 * time.Second,
+	}, slog.Default())
 	if err != nil {
 		t.Fatalf("NewPool: %v", err)
 	}
@@ -122,7 +126,9 @@ func TestWithTx_RollsBackOnError(t *testing.T) {
 
 func TestWithTx_RollsBackOnPanic(t *testing.T) {
 	dsn := setupContainer(t)
-	pool, err := postgres.NewPool(context.Background(), postgres.Config{URL: dsn}, slog.Default())
+	pool, err := postgres.NewPool(context.Background(), postgres.Config{
+		URL: dsn, MaxConns: 4, MinConns: 1, HealthCheckPeriod: 5 * time.Second, ConnectTimeout: 5 * time.Second,
+	}, slog.Default())
 	if err != nil {
 		t.Fatalf("NewPool: %v", err)
 	}

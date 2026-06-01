@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package identity.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/online-shop/proto/gen/go/identity/v1;identityv1";
+
+service IdentityService {
+  rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
+  rpc LoginUser(LoginUserRequest) returns (LoginUserResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+
+  // idempotent: true
+  rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
+
+  // idempotent: true
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+}
+
+message RegisterUserRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message RegisterUserResponse {
+  string user_id = 1;
+  string email = 2;
+}
+
+message LoginUserRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginUserResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  google.protobuf.Timestamp access_token_expires_at = 3;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  google.protobuf.Timestamp access_token_expires_at = 3;
+}
+
+message VerifyTokenRequest {
+  string access_token = 1;
+}
+
+message VerifyTokenResponse {
+  bool valid = 1;
+  string user_id = 2;
+  repeated string roles = 3;
+  string email = 4;
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message GetUserResponse {
+  User user = 1;
+}
+
+message User {
+  string id = 1;
+  string email = 2;
+  repeated string roles = 3;
+  google.protobuf.Timestamp created_at = 4;
+}

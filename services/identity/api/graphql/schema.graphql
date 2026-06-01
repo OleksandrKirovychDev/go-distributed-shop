@@ -1,0 +1,35 @@
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.9", import: ["@key"])
+
+scalar Time
+
+type User @key(fields: "id") {
+  id: ID!
+  email: String!
+  roles: [String!]!
+  createdAt: Time!
+}
+
+type AuthPayload {
+  accessToken: String!
+  refreshToken: String!
+  accessTokenExpiresAt: Time!
+}
+
+input RegisterUserInput {
+  email: String!
+  password: String!
+}
+
+input LoginUserInput {
+  email: String!
+  password: String!
+}
+
+type Mutation {
+  registerUser(input: RegisterUserInput!): User!
+  loginUser(input: LoginUserInput!): AuthPayload!
+}
+
+type Query {
+  me: User!
+}

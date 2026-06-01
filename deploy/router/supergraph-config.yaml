@@ -1,0 +1,10 @@
+# Composition input for `rover supergraph compose` → deploy/router/supergraph.graphql
+# (committed; regenerate with `task supergraph:compose`, verify with
+# `task supergraph:check`). rover resolves each subgraph's schema.file relative to
+# THIS file's directory.
+federation_version: =2.9.2
+subgraphs:
+  identity:
+    routing_url: http://identity:8081/graphql
+    schema:
+      file: ../../services/identity/api/graphql/schema.graphql

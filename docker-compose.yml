@@ -3,6 +3,7 @@ name: online-shop
 include:
   - deploy/compose/infra.yml
   - deploy/compose/observability.yml
+  - deploy/compose/services.yml
 
 networks:
   online-shop:

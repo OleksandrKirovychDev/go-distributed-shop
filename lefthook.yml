@@ -6,27 +6,9 @@
 pre-commit:
   parallel: true
   commands:
-    gofmt:
+    format:
       glob: "*.go"
-      run: |
-        bad=$(gofmt -l {staged_files})
-        if [ -n "$bad" ]; then
-          echo "Unformatted Go files:"
-          echo "$bad"
-          echo "Run 'task fmt' to fix."
-          exit 1
-        fi
-
-    goimports:
-      glob: "*.go"
-      run: |
-        bad=$(goimports -l -local github.com/online-shop {staged_files})
-        if [ -n "$bad" ]; then
-          echo "Files with bad import order:"
-          echo "$bad"
-          echo "Run 'task fmt' to fix."
-          exit 1
-        fi
+      run: task fmt:check
 
     golangci-lint:
       glob: "*.go"

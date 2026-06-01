@@ -2,9 +2,18 @@ version: "3"
 
 silent: true
 
+includes:
+  identity:
+    taskfile: ./services/identity/Taskfile.yml
+    dir: ./services/identity
+
 vars:
   MODULES:
     sh: find "{{.TASKFILE_DIR}}" -name go.mod -not -path '*/.git/*' -exec dirname {} \;
+  # rover installs to ~/.rover/bin and isn't always on PATH; prefer the PATH copy,
+  # fall back to the known install location.
+  ROVER:
+    sh: command -v rover >/dev/null 2>&1 && echo rover || echo "$HOME/.rover/bin/rover"
 
 tasks:
   default:
@@ -21,10 +30,22 @@ tasks:
         cmd: (cd "{{.ITEM}}" && golangci-lint run ./...)
 
   fmt:
-    desc: Format Go code across the workspace (gofmt + goimports)
+    desc: Format Go code across the workspace (gofmt + goimports, generated-aware)
     cmds:
-      - gofmt -w .
-      - goimports -w -local github.com/online-shop .
+      - for: { var: MODULES }
+        cmd: (cd "{{.ITEM}}" && golangci-lint fmt)
+
+  fmt:check:
+    desc: Verify formatting without writing (used by hooks/CI)
+    cmds:
+      - for: { var: MODULES }
+        cmd: |
+          out="$(cd "{{.ITEM}}" && golangci-lint fmt --diff)"
+          if [ -n "$out" ]; then
+            echo "$out"
+            echo "Unformatted code in {{.ITEM}} — run 'task fmt' to fix."
+            exit 1
+          fi
 
   test:
     desc: Run unit + adapter tests for every workspace module
@@ -33,7 +54,13 @@ tasks:
         cmd: (cd "{{.ITEM}}" && go test ./...)
 
   test:integration:
-    desc: Run E2E smoke tests against the running stack
+    desc: Run integration tests (build-tag gated; testcontainers) across modules
+    cmds:
+      - for: { var: MODULES }
+        cmd: (cd "{{.ITEM}}" && go test -tags integration -count=1 ./...)
+
+  test:e2e:
+    desc: Run E2E smoke tests against the running stack (hurl/k6)
     cmds:
       - echo "Not implemented yet."
 
@@ -83,25 +110,36 @@ tasks:
 
   up:
     desc: Bring up the entire stack (infra + services)
+    # keygen is idempotent (skips when the key exists); running it first ensures the
+    # signing key is a real file before compose bind-mounts it — a missing path would
+    # otherwise be created as an empty directory and the service would fail to start.
+    deps: [identity:keygen]
     cmds:
-      - echo "Not implemented yet."
+      - docker compose --profile services up -d --wait
 
   down:
-    desc: Tear down the entire stack
+    desc: Tear down the entire stack (data volumes persist)
     cmds:
-      - echo "Not implemented yet."
+      - docker compose --profile services down
 
   # --- GraphQL federation ------------------------------------------------
 
   supergraph:compose:
     desc: Compose Apollo Federation v2 supergraph from subgraph schemas
     cmds:
-      - echo "Not implemented yet."
+      - '{{.ROVER}} supergraph compose --config deploy/router/supergraph-config.yaml --elv2-license=accept --output deploy/router/supergraph.graphql'
 
   supergraph:check:
     desc: Verify the committed supergraph.graphql matches a fresh recomposition
     cmds:
-      - echo "Not implemented yet."
+      - |
+        tmp="$(mktemp)"
+        trap 'rm -f "$tmp"' EXIT
+        {{.ROVER}} supergraph compose --config deploy/router/supergraph-config.yaml --elv2-license=accept --output "$tmp"
+        if ! diff -u deploy/router/supergraph.graphql "$tmp"; then
+          echo "supergraph.graphql is stale — run 'task supergraph:compose' and commit the result." >&2
+          exit 1
+        fi
 
   # --- Git hooks ----------------------------------------------------------
 
@@ -114,11 +152,3 @@ tasks:
     desc: Run all lefthook checks against the full tree
     cmds:
       - lefthook run pre-commit --all-files
-
-  # --- Smoketest -------------------------------
-
-  smoketest:run:
-    desc: Run the proof-of-life cmd (one JSON log line + one OTel span)
-    dir: cmd/smoketest
-    cmds:
-      - go run .

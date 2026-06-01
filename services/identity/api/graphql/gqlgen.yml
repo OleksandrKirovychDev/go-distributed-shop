@@ -1,0 +1,25 @@
+# gqlgen configuration for the Identity GraphQL subgraph (Apollo Federation v2).
+# Paths resolve relative to this file. Generated code lands in the inbound
+# graphql adapter and is committed, mirroring the sqlc/proto convention.
+
+schema:
+  - schema.graphql
+
+federation:
+  filename: ../../internal/adapters/inbound/graphql/federation.go
+  package: graphql
+  version: 2
+
+exec:
+  filename: ../../internal/adapters/inbound/graphql/generated.go
+  package: graphql
+
+model:
+  filename: ../../internal/adapters/inbound/graphql/model/models_gen.go
+  package: model
+
+resolver:
+  layout: follow-schema
+  dir: ../../internal/adapters/inbound/graphql
+  package: graphql
+  filename_template: "{name}.resolvers.go"
