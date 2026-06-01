@@ -1,0 +1,57 @@
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "service"
+  }
+}
+
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.containers.output
+  forward_to = [loki.process.parse.receiver]
+}
+
+loki.process "parse" {
+  stage.json {
+    expressions = {
+      level    = "",
+      service  = "",
+      trace_id = "",
+      span_id  = "",
+    }
+  }
+
+  // Low-cardinality fields become indexed labels. The slog `service` overrides
+  // the container-name fallback set in discovery.relabel for our own services.
+  stage.labels {
+    values = {
+      level   = "",
+      service = "",
+    }
+  }
+
+  // trace_id/span_id are high-cardinality: attach as structured metadata
+  // (queryable, not indexed) so log<->trace correlation works without a
+  // label explosion. Requires allow_structured_metadata on Loki.
+  stage.structured_metadata {
+    values = {
+      trace_id = "",
+      span_id  = "",
+    }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

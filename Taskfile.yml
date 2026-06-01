@@ -59,12 +59,27 @@ tasks:
   infra:up:
     desc: Start local infrastructure (Postgres, Redpanda, Redis, OpenSearch, MinIO, LGTM stack)
     cmds:
-      - echo "Not implemented yet."
+      - docker compose up -d --wait
 
   infra:down:
-    desc: Stop local infrastructure
+    desc: Stop local infrastructure (data volumes persist)
     cmds:
-      - echo "Not implemented yet."
+      - docker compose down
+
+  infra:down:hard:
+    desc: Stop local infrastructure and delete all data volumes
+    cmds:
+      - docker compose down -v
+
+  infra:logs:
+    desc: Follow logs from all infrastructure containers
+    cmds:
+      - docker compose logs -f
+
+  infra:ps:
+    desc: Show status of infrastructure containers
+    cmds:
+      - docker compose ps
 
   up:
     desc: Bring up the entire stack (infra + services)

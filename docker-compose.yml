@@ -1,0 +1,10 @@
+name: online-shop
+
+include:
+  - deploy/compose/infra.yml
+  - deploy/compose/observability.yml
+
+networks:
+  online-shop:
+    name: online-shop
+    driver: bridge
